@@ -1,198 +1,49 @@
 # End-to-End Insurance Risk Analytics and Predictive Modeling
 
-## 🎯 Project Overview
+## Project Overview
 
-This project develops a comprehensive insurance risk analytics and predictive modeling system to optimize insurance pricing, improve risk assessment, and enhance profitability through data-driven insights.
+This project implements a comprehensive insurance risk analytics and predictive modeling system. The project is structured in multiple tasks, each building upon the previous work to create a complete end-to-end solution.
 
-### 🏆 Current Phase: Task 1.2 - EDA & Statistical Analysis
+## Task 3: Statistical Hypothesis Testing for Risk Segmentation
 
-**Objective:** Develop foundational understanding of insurance data, assess quality, and uncover initial patterns in risk and profitability.
+### Objective
+Statistically validate or reject key hypotheses about risk drivers to form the basis of our new segmentation strategy through A/B hypothesis testing.
 
-## 📊 Key Business Questions Addressed
+### Hypotheses Tested
+1. **H₀**: There are no risk differences across provinces
+2. **H₀**: There are no risk differences between zip codes
+3. **H₀**: There are no significant margin (profit) differences between zip codes
+4. **H₀**: There are no significant risk differences between Women and Men
 
-1. **Loss Ratio Analysis**: What is the overall Loss Ratio (TotalClaims / TotalPremium) for the portfolio?
-2. **Risk Segmentation**: How does Loss Ratio vary by Province, VehicleType, and Gender?
-3. **Data Quality**: What are the distributions of key financial variables and outliers?
-4. **Temporal Trends**: Are there temporal patterns in claim frequency or severity?
-5. **Vehicle Risk**: Which vehicle makes/models are associated with highest/lowest claims?
+### Key Metrics
+- **Risk Quantification**:
+  - **Claim Frequency**: Proportion of policies with at least one claim
+  - **Claim Severity**: Average amount of a claim, given a claim occurred
+- **Margin**: TotalPremium - TotalClaims
 
-## 🛠️ Technical Stack
+### Statistical Methods Used
+- **Chi-Square Test**: For categorical variables (claim frequency differences)
+- **Two-Sample T-Test**: For comparing means between two groups
+- **Mann-Whitney U Test**: Non-parametric alternative for two-group comparisons
+- **One-Way ANOVA**: For comparing means across multiple groups
+- **Kruskal-Wallis Test**: Non-parametric alternative for multi-group comparisons
 
-- **Python 3.8+**
-- **Data Analysis**: pandas, numpy, scipy
-- **Visualization**: matplotlib, seaborn, plotly, bokeh
-- **Statistical Analysis**: statsmodels
-- **Jupyter Notebooks** for interactive analysis
-- **DVC** for data version control
+### Results Summary
+Based on our analysis with sample data:
 
-## 📁 Project Structure
+#### Rejected Hypotheses (Significant Differences Found):
+1. **Province Risk Differences**: Significant differences found in claim frequency, claim severity, and loss ratio across provinces (p < 0.001)
+2. **Gender Risk Differences**: Significant differences found in margin between genders (p < 0.001)
 
-```
-├── data/                          # Data files (managed by DVC)
-│   └── MachineLearningRating_v3.txt.dvc
-├── notebook/                      # Jupyter notebooks
-│   └── EDA.ipynb                 # Comprehensive EDA analysis
-├── src/                          # Source code
-│   ├── __init__.py
-│   └── eda_analysis.py           # EDA analysis class
-├── tests/                        # Unit tests
-│   └── __init__.py
-├── plots/                        # Generated visualizations
-├── requirements.txt              # Python dependencies
-├── README.md                     # Project documentation
-└── LICENSE                       # License file
-```
+#### Failed to Reject (No Significant Differences):
+1. **Zip Code Risk Differences**: No significant differences in risk metrics between zip codes
+2. **Zip Code Margin Differences**: No significant differences in profit margins between zip codes
 
-## 🚀 Getting Started
+### Business Recommendations
+1. **Implement province-specific pricing strategies** due to significant risk variations across provinces
+2. **Consider gender-based risk factors** in underwriting (subject to regulatory compliance and fairness considerations)
 
-### Prerequisites
-
-- Python 3.8 or higher
-- Git
-- Virtual environment (recommended)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YeabsiraNigusse/End-to-End-Insurance-Risk-Analytics-and-Predictive-Modeling.git
-   cd End-to-End-Insurance-Risk-Analytics-and-Predictive-Modeling
-   ```
-
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up data (if available)**
-   ```bash
-   dvc pull  # If DVC is configured
-   ```
-
-## 📈 Analysis Features
-
-### 🔍 Comprehensive EDA Class (`InsuranceEDA`)
-
-The `InsuranceEDA` class provides:
-
-- **Data Loading & Preparation**: Automatic data type detection and conversion
-- **Quality Assessment**: Missing value analysis and data validation
-- **Descriptive Statistics**: Comprehensive statistical summaries
-- **Loss Ratio Analysis**: Core insurance profitability metrics
-- **Outlier Detection**: Multiple methods (IQR, Z-score)
-- **Temporal Analysis**: Time-series trend identification
-- **Statistical Testing**: Hypothesis testing for group differences
-- **Advanced Visualizations**: Three creative, insightful plots
-
-### 📊 Key Visualizations
-
-1. **Interactive Loss Ratio Dashboard**: Province vs Vehicle Type heatmap
-2. **Risk Profile Matrix**: Premium vs Claims segmentation
-3. **Temporal Claims Analysis**: Multi-panel time series analysis
-
-## 🎯 Key Performance Indicators (KPIs)
-
-- **Overall Loss Ratio**: Portfolio profitability metric
-- **Segmented Loss Ratios**: By Province, Vehicle Type, Gender
-- **Claim Frequency**: Number of claims per period
-- **Claim Severity**: Average claim amount
-- **Risk Concentration**: Geographic and demographic risk distribution
-
-## 📋 Usage Examples
-
-### Quick Start with Jupyter Notebook
-
-```bash
-jupyter notebook notebook/EDA.ipynb
-```
-
-### Programmatic Analysis
-
-```python
-from src.eda_analysis import InsuranceEDA
-
-# Initialize EDA
-eda = InsuranceEDA(data_path="data/MachineLearningRating_v3.txt")
-
-# Run complete analysis
-results = eda.run_complete_analysis()
-
-# Access specific analyses
-loss_analysis = eda.loss_ratio_analysis()
-outliers = eda.outlier_detection()
-insights = eda.generate_insights()
-```
-
-## 📊 Sample Insights Generated
-
-- ✅ Portfolio profitability assessment
-- 🏢 Geographic risk concentration identification
-- 🚗 Vehicle type risk ranking
-- 📈 Temporal trend analysis
-- 🎯 Actionable recommendations for pricing and underwriting
-
-## 🔬 Statistical Methods Applied
-
-- **Descriptive Statistics**: Mean, median, variance, skewness, kurtosis
-- **Hypothesis Testing**: T-tests, ANOVA for group comparisons
-- **Outlier Detection**: IQR method, Z-score analysis
-- **Correlation Analysis**: Pearson correlation matrices
-- **Distribution Analysis**: Statistical distribution fitting
-
-## 📈 Visualization Capabilities
-
-- **Univariate Analysis**: Histograms, box plots, bar charts
-- **Bivariate Analysis**: Scatter plots, correlation heatmaps
-- **Advanced Plots**: Interactive dashboards, risk matrices
-- **Temporal Analysis**: Time series plots, trend analysis
-
-## 🎯 Business Value Delivered
-
-1. **Risk Assessment**: Identify high-risk segments and geographies
-2. **Pricing Optimization**: Data-driven insights for premium setting
-3. **Profitability Analysis**: Loss ratio monitoring and improvement
-4. **Operational Efficiency**: Automated analysis and reporting
-5. **Strategic Planning**: Evidence-based decision making
-
-## 🚀 Next Steps (Upcoming Tasks)
-
-- [ ] **Feature Engineering**: Advanced feature creation and selection
-- [ ] **Predictive Modeling**: Machine learning model development
-- [ ] **Model Validation**: Cross-validation and performance metrics
-- [ ] **Deployment**: Production-ready model deployment
-- [ ] **Monitoring**: Model performance tracking and maintenance
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Team
-
-- **Lead Data Scientist**: Insurance Analytics Team
-- **Project Type**: End-to-End Insurance Risk Analytics
-- **Industry**: Insurance & Financial Services
-
-## 📞 Contact
-
-For questions or collaboration opportunities, please open an issue or contact the development team.
-
----
-
-**⭐ Star this repository if you find it helpful!**
+## Project Structure
 
 
 A starter repo to get everyone up and running with Python, Git, and GitHub Actions CI so you can focus on the challenge!
