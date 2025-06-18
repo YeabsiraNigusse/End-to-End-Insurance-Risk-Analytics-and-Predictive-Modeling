@@ -84,7 +84,7 @@ class InsurancePredictiveModeling:
     def load_and_prepare_data(self) -> pd.DataFrame:
         """
         Load and perform initial data preparation
-        
+
         Returns:
             Prepared DataFrame
         """
@@ -93,17 +93,71 @@ class InsurancePredictiveModeling:
                 print(f"Loading data from {self.data_path}")
                 self.df = pd.read_csv(self.data_path, sep="|", low_memory=False)
                 print(f"Data loaded successfully. Shape: {self.df.shape}")
+
+                # Create HasClaim column if it doesn't exist
+                self._create_target_variables()
+
             else:
-                print("Data file not found. Creating sample data for demonstration...")
+                if self.data_path:
+                    print(f"Data file not found: {self.data_path}")
+                    print("This might be a DVC-managed file. Try running 'dvc pull' first.")
+                print("Creating sample data for demonstration...")
                 self.df = self._create_sample_data()
-                
+
             return self.df
-            
+
         except Exception as e:
             print(f"Error loading data: {e}")
             print("Creating sample data for demonstration...")
             self.df = self._create_sample_data()
             return self.df
+
+    def _create_target_variables(self):
+        """Create target variables for modeling if they don't exist"""
+
+        # Create HasClaim column if it doesn't exist
+        if 'HasClaim' not in self.df.columns:
+            if 'TotalClaims' in self.df.columns:
+                # Convert TotalClaims to numeric, handling any non-numeric values
+                self.df['TotalClaims'] = pd.to_numeric(self.df['TotalClaims'], errors='coerce').fillna(0)
+                # Create binary HasClaim variable
+                self.df['HasClaim'] = (self.df['TotalClaims'] > 0).astype(int)
+                print("✅ Created HasClaim column from TotalClaims")
+            else:
+                print("⚠️ TotalClaims column not found. Cannot create HasClaim column.")
+
+        # Ensure TotalClaims is numeric
+        if 'TotalClaims' in self.df.columns:
+            self.df['TotalClaims'] = pd.to_numeric(self.df['TotalClaims'], errors='coerce').fillna(0)
+
+        # Ensure CalculatedPremiumPerTerm is numeric
+        if 'CalculatedPremiumPerTerm' in self.df.columns:
+            self.df['CalculatedPremiumPerTerm'] = pd.to_numeric(self.df['CalculatedPremiumPerTerm'], errors='coerce')
+        elif 'TotalPremium' in self.df.columns:
+            # Use TotalPremium as CalculatedPremiumPerTerm if the latter doesn't exist
+            self.df['CalculatedPremiumPerTerm'] = pd.to_numeric(self.df['TotalPremium'], errors='coerce')
+            print("✅ Created CalculatedPremiumPerTerm from TotalPremium")
+
+        print(f"📊 Target variables summary:")
+        if 'HasClaim' in self.df.columns:
+            claim_rate = self.df['HasClaim'].mean()
+            print(f"  Claim rate: {claim_rate:.3f} ({self.df['HasClaim'].sum():,} claims out of {len(self.df):,} policies)")
+
+        if 'TotalClaims' in self.df.columns:
+            total_claims = self.df['TotalClaims'].sum()
+            avg_claim = self.df[self.df['TotalClaims'] > 0]['TotalClaims'].mean() if (self.df['TotalClaims'] > 0).any() else 0
+            print(f"  Total claims: R{total_claims:,.2f}")
+            print(f"  Average claim (when > 0): R{avg_claim:,.2f}")
+
+        if 'CalculatedPremiumPerTerm' in self.df.columns:
+            total_premium = self.df['CalculatedPremiumPerTerm'].sum()
+            avg_premium = self.df['CalculatedPremiumPerTerm'].mean()
+            print(f"  Total premiums: R{total_premium:,.2f}")
+            print(f"  Average premium: R{avg_premium:,.2f}")
+
+            if 'TotalClaims' in self.df.columns:
+                loss_ratio = total_claims / total_premium if total_premium > 0 else 0
+                print(f"  Overall loss ratio: {loss_ratio:.3f}")
     
     def _create_sample_data(self) -> pd.DataFrame:
         """
