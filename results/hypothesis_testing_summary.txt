@@ -1,0 +1,142 @@
+INSURANCE RISK ANALYTICS - HYPOTHESIS TESTING SUMMARY
+============================================================
+Analysis Date: 2025-06-18 19:21:18
+
+Total hypotheses tested: 4
+
+REJECTED HYPOTHESES (4):
+  • H1_provinces
+    Evidence: Significant differences found in: claim_frequency, claim_severity, loss_ratio
+
+  • H2_zip_codes
+    Evidence: Significant differences found in: claim_frequency, claim_severity, loss_ratio
+
+  • H3_zip_margin
+    Evidence: Significant differences found in: margin
+
+  • H4_gender
+    Evidence: Significant differences found in: margin
+
+FAILED TO REJECT HYPOTHESES (0):
+BUSINESS RECOMMENDATIONS:
+  1. Consider implementing province-specific pricing strategies due to significant risk variations across provinces.
+  2. Implement zip code-level risk adjustments in pricing models to account for geographic risk variations.
+  3. Review pricing strategy by zip code to optimize profit margins and ensure competitive positioning.
+  4. Consider gender-based risk factors in underwriting (subject to regulatory compliance and fairness considerations).
+
+============================================================
+DETAILED RESULTS:
+============================================================
+
+H₁: Risk differences across provinces
+-------------------------------------
+Null Hypothesis: H₀: There are no risk differences across provinces
+
+CLAIM_FREQUENCY TEST:
+  Test: Chi-Square Test of Independence
+  Statistic: 104.1909
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The association is significant (p=0.0000) with a negligible effect size (Cramér's V=0.0102)
+
+CLAIM_SEVERITY TEST:
+  Test: Kruskal-Wallis Test
+  Statistic: 106.0927
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The group differences are significant (p=0.0000) with a small effect size (ε²=0.0353)
+
+LOSS_RATIO TEST:
+  Test: Kruskal-Wallis Test
+  Statistic: 93.6966
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The group differences are significant (p=0.0000) with a negligible effect size (ε²=0.0001)
+
+CONCLUSION:
+  Decision: REJECT NULL HYPOTHESIS
+  Evidence: Significant differences found in: claim_frequency, claim_severity, loss_ratio
+
+
+H₂: Risk differences between zip codes
+--------------------------------------
+Null Hypothesis: H₀: There are no risk differences between zip codes
+
+CLAIM_FREQUENCY TEST:
+  Test: Chi-Square Test of Independence
+  Statistic: 72.6494
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The association is significant (p=0.0000) with a negligible effect size (Cramér's V=0.0153)
+
+CLAIM_SEVERITY TEST:
+  Test: Kruskal-Wallis Test
+  Statistic: 41.4278
+  P-value: 0.000004
+  Significant: True
+  Interpretation: The group differences are significant (p=0.0000) with a small effect size (ε²=0.0318)
+
+LOSS_RATIO TEST:
+  Test: Kruskal-Wallis Test
+  Statistic: 47.7859
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The group differences are significant (p=0.0000) with a negligible effect size (ε²=0.0002)
+
+CONCLUSION:
+  Decision: REJECT NULL HYPOTHESIS
+  Evidence: Significant differences found in: claim_frequency, claim_severity, loss_ratio
+
+
+H₃: Margin differences between zip codes
+----------------------------------------
+Null Hypothesis: H₀: There are no significant margin (profit) differences between zip codes
+
+MARGIN TEST:
+  Test: Kruskal-Wallis Test
+  Statistic: 4931.1403
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The group differences are significant (p=0.0000) with a small effect size (ε²=0.0158)
+
+CONCLUSION:
+  Decision: REJECT NULL HYPOTHESIS
+  Evidence: Significant differences found in: margin
+
+
+H₄: Risk differences between genders
+------------------------------------
+Null Hypothesis: H₀: There are no significant risk differences between Women and Men
+
+CLAIM_FREQUENCY TEST:
+  Test: Chi-Square Test of Independence
+  Statistic: 0.0037
+  P-value: 0.951464
+  Significant: False
+  Interpretation: The association is not significant (p=0.9515) with a negligible effect size (Cramér's V=0.0003)
+
+CLAIM_SEVERITY TEST:
+  Test: Mann-Whitney U Test
+  Statistic: 524.5000
+  P-value: 0.223513
+  Significant: False
+  Interpretation: The difference is not significant (p=0.2235) with a small effect size (r=0.2029)
+
+LOSS_RATIO TEST:
+  Test: Mann-Whitney U Test
+  Statistic: 32908460.0000
+  P-value: 0.635080
+  Significant: False
+  Interpretation: The difference is not significant (p=0.6351) with a negligible effect size (r=-0.0006)
+
+MARGIN TEST:
+  Test: Mann-Whitney U Test
+  Statistic: 137313181.0000
+  P-value: 0.000000
+  Significant: True
+  Interpretation: The difference is significant (p=0.0000) with a negligible effect size (r=0.0505)
+
+CONCLUSION:
+  Decision: REJECT NULL HYPOTHESIS
+  Evidence: Significant differences found in: margin
+
