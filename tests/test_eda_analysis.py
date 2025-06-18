@@ -7,9 +7,12 @@ import pandas as pd
 import numpy as np
 import sys
 import os
-sys.path.append('../src')
+from pathlib import Path
 
-from src.eda_analysis import InsuranceEDA
+# Add src directory to path
+sys.path.append(str(Path(__file__).parent.parent / 'src'))
+
+from eda_analysis import InsuranceEDA
 
 
 class TestInsuranceEDA(unittest.TestCase):

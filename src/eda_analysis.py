@@ -515,14 +515,15 @@ class InsuranceEDA:
 
         pivot_data['LossRatio'] = pivot_data['TotalClaims'] / pivot_data['TotalPremium']
 
-        # Create interactive heatmap
-        fig = px.density_heatmap(
-            pivot_data,
-            x='Province',
-            y='VehicleType',
-            z='LossRatio',
+        # Create pivot table for heatmap
+        pivot_table = pivot_data.pivot(index='VehicleType', columns='Province', values='LossRatio')
+
+        # Create heatmap using plotly
+        fig = px.imshow(
+            pivot_table,
             title='Loss Ratio Heatmap: Province vs Vehicle Type',
-            color_continuous_scale='RdYlBu_r'
+            color_continuous_scale='RdYlBu_r',
+            aspect='auto'
         )
 
         fig.update_layout(
@@ -538,10 +539,19 @@ class InsuranceEDA:
     def _create_risk_profile_heatmap(self, save_plots: bool):
         """Create risk profile heatmap"""
         # Create risk segments based on claims and premiums
-        self.df['PremiumSegment'] = pd.qcut(self.df['TotalPremium'],
-                                          q=4, labels=['Low', 'Medium', 'High', 'Very High'])
-        self.df['ClaimSegment'] = pd.qcut(self.df['TotalClaims'],
-                                        q=4, labels=['Low', 'Medium', 'High', 'Very High'])
+        try:
+            self.df['PremiumSegment'] = pd.qcut(self.df['TotalPremium'],
+                                              q=4, labels=['Low', 'Medium', 'High', 'Very High'],
+                                              duplicates='drop')
+            self.df['ClaimSegment'] = pd.qcut(self.df['TotalClaims'],
+                                            q=4, labels=['Low', 'Medium', 'High', 'Very High'],
+                                            duplicates='drop')
+        except ValueError:
+            # Fallback to percentile-based segmentation if qcut fails
+            self.df['PremiumSegment'] = pd.cut(self.df['TotalPremium'],
+                                             bins=4, labels=['Low', 'Medium', 'High', 'Very High'])
+            self.df['ClaimSegment'] = pd.cut(self.df['TotalClaims'],
+                                           bins=4, labels=['Low', 'Medium', 'High', 'Very High'])
 
         # Create cross-tabulation
         risk_profile = pd.crosstab(self.df['PremiumSegment'], self.df['ClaimSegment'])
