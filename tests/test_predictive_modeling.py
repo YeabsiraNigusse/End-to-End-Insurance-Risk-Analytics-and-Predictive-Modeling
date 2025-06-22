@@ -119,7 +119,7 @@ class TestInsurancePredictiveModeling(unittest.TestCase):
         # Create test data with categorical variables
         test_data = pd.DataFrame({
             'small_cat': ['A', 'B', 'C', 'A', 'B'],  # Should be one-hot encoded
-            'large_cat': [f'Cat_{i}' for i in range(15)] + [f'Cat_{i%15}' for i in range(5)],  # Should be label encoded
+            'large_cat': [f'Cat_{i%15}' for i in range(5)],  # Should be label encoded (fixed length)
             'numeric_col': [1, 2, 3, 4, 5]
         })
         

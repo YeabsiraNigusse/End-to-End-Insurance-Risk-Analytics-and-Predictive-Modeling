@@ -283,10 +283,62 @@ class InsurancePredictiveModeling:
         # 4. Feature scaling (for numerical features)
         print("📏 Scaling numerical features...")
         df = self._scale_numerical_features(df)
-        
+
+        # 5. Final missing value and data quality check
+        print("🔍 Final data quality check...")
+
+        # Check for missing values
+        missing_values = df.isnull().sum().sum()
+        if missing_values > 0:
+            print(f"⚠️ Found {missing_values} missing values after preprocessing. Cleaning up...")
+
+            # Handle any remaining missing values
+            # Numerical columns - use median imputation
+            numerical_cols = df.select_dtypes(include=[np.number]).columns
+            for col in numerical_cols:
+                if df[col].isnull().sum() > 0:
+                    nan_count = df[col].isnull().sum()
+                    median_value = df[col].median()
+                    if pd.isna(median_value):  # If median is also NaN, use 0
+                        median_value = 0
+                    df[col].fillna(median_value, inplace=True)
+                    print(f"  Final cleanup: Filled {nan_count} missing values in {col} with median: {median_value:.2f}")
+
+            # Categorical columns - use mode imputation
+            categorical_cols = df.select_dtypes(include=['object', 'category']).columns
+            for col in categorical_cols:
+                if df[col].isnull().sum() > 0:
+                    nan_count = df[col].isnull().sum()
+                    mode_value = df[col].mode().iloc[0] if not df[col].mode().empty else 'Unknown'
+                    df[col].fillna(mode_value, inplace=True)
+                    print(f"  Final cleanup: Filled {nan_count} missing values in {col} with mode: {mode_value}")
+
+            # Final missing value check
+            final_missing = df.isnull().sum().sum()
+            print(f"✅ Final missing values after cleanup: {final_missing}")
+        else:
+            print("✅ No missing values found")
+
+        # Check for infinite values
+        print("🔍 Checking for infinite values...")
+        numerical_cols = df.select_dtypes(include=[np.number]).columns
+        inf_found = False
+        for col in numerical_cols:
+            inf_count = np.isinf(df[col]).sum()
+            if inf_count > 0:
+                inf_found = True
+                print(f"⚠️ Found {inf_count} infinite values in {col}. Replacing with median...")
+                median_value = df[col][~np.isinf(df[col])].median()
+                if pd.isna(median_value):
+                    median_value = 0
+                df[col] = df[col].replace([np.inf, -np.inf], median_value)
+
+        if not inf_found:
+            print("✅ No infinite values found")
+
         self.df_processed = df
         print(f"✅ Data preprocessing completed. Final shape: {df.shape}")
-        
+
         return df
 
     def _handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -333,9 +385,14 @@ class InsurancePredictiveModeling:
 
         # Premium categories
         if 'CalculatedPremiumPerTerm' in df.columns:
-            df['PremiumCategory'] = pd.qcut(df['CalculatedPremiumPerTerm'],
-                                          q=5, labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'],
-                                          duplicates='drop')
+            try:
+                df['PremiumCategory'] = pd.qcut(df['CalculatedPremiumPerTerm'],
+                                              q=5, labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'],
+                                              duplicates='drop')
+            except ValueError:
+                # If qcut fails due to duplicate values, use cut instead
+                df['PremiumCategory'] = pd.cut(df['CalculatedPremiumPerTerm'],
+                                             bins=5, labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'])
 
         # Time-based features
         if 'TransactionMonth' in df.columns:
@@ -411,6 +468,98 @@ class InsurancePredictiveModeling:
 
         return df
 
+    def _robust_nan_cleanup(self, X: pd.DataFrame, context: str = "features") -> pd.DataFrame:
+        """
+        Ultra-robust NaN cleanup for feature matrices
+
+        Args:
+            X: Feature DataFrame
+            context: Context for logging (e.g., "features", "claim severity features")
+
+        Returns:
+            Cleaned DataFrame with guaranteed no NaN values
+        """
+        nan_count_before = X.isnull().sum().sum()
+        if nan_count_before > 0:
+            print(f"⚠️ Found {nan_count_before} NaN values in {context}. Applying ultra-robust cleanup...")
+
+            X_clean = X.copy()
+
+            # First pass: Manual cleanup
+            for col in X_clean.columns:
+                if X_clean[col].isnull().sum() > 0:
+                    nan_count_col = X_clean[col].isnull().sum()
+
+                    # Check data type more comprehensively
+                    if pd.api.types.is_numeric_dtype(X_clean[col]):
+                        # For numerical columns
+                        non_nan_values = X_clean[col].dropna()
+                        if len(non_nan_values) > 0:
+                            fill_val = non_nan_values.median()
+                            if pd.isna(fill_val) or np.isinf(fill_val):
+                                fill_val = 0
+                        else:
+                            fill_val = 0
+
+                        X_clean[col].fillna(fill_val, inplace=True)
+                        print(f"    Filled {nan_count_col} NaN values in {col} with median: {fill_val}")
+
+                    else:
+                        # For categorical/boolean columns
+                        non_nan_values = X_clean[col].dropna()
+                        if len(non_nan_values) > 0:
+                            mode_val = non_nan_values.mode()
+                            if len(mode_val) > 0:
+                                fill_val = mode_val.iloc[0]
+                            else:
+                                fill_val = 'Unknown' if X_clean[col].dtype == 'object' else 0
+                        else:
+                            fill_val = 'Unknown' if X_clean[col].dtype == 'object' else 0
+
+                        X_clean[col].fillna(fill_val, inplace=True)
+                        print(f"    Filled {nan_count_col} NaN values in {col} with mode/default: {fill_val}")
+
+            # Second pass: Use sklearn SimpleImputer as backup
+            nan_count_after_first = X_clean.isnull().sum().sum()
+            if nan_count_after_first > 0:
+                print(f"⚠️ Still {nan_count_after_first} NaN values after first pass. Using SimpleImputer...")
+
+                from sklearn.impute import SimpleImputer
+
+                # Separate by data type
+                numerical_cols = X_clean.select_dtypes(include=[np.number]).columns
+                categorical_cols = X_clean.select_dtypes(include=['object', 'bool', 'category']).columns
+
+                # Impute numerical columns
+                if len(numerical_cols) > 0:
+                    num_imputer = SimpleImputer(strategy='median')
+                    X_clean[numerical_cols] = num_imputer.fit_transform(X_clean[numerical_cols])
+
+                # Impute categorical columns
+                if len(categorical_cols) > 0:
+                    cat_imputer = SimpleImputer(strategy='most_frequent')
+                    X_clean[categorical_cols] = cat_imputer.fit_transform(X_clean[categorical_cols])
+
+            # Third pass: Nuclear option - replace any remaining NaN with 0
+            nan_count_after_second = X_clean.isnull().sum().sum()
+            if nan_count_after_second > 0:
+                print(f"⚠️ Still {nan_count_after_second} NaN values. Applying nuclear cleanup (replace with 0)...")
+                X_clean = X_clean.fillna(0)
+
+            nan_count_final = X_clean.isnull().sum().sum()
+            print(f"✅ Ultra-robust cleanup completed. Before: {nan_count_before}, After: {nan_count_final}")
+
+            # Final verification
+            if nan_count_final > 0:
+                print(f"❌ CRITICAL: {nan_count_final} NaN values still remain! This should not happen.")
+                # Emergency fallback
+                X_clean = X_clean.fillna(0)
+                print("Applied emergency fallback: replaced all remaining NaN with 0")
+
+            return X_clean
+
+        return X
+
     def build_claim_severity_models(self) -> Dict[str, Any]:
         """
         Build models to predict claim severity (TotalClaims for policies with claims > 0)
@@ -419,6 +568,16 @@ class InsurancePredictiveModeling:
             Dictionary with model results
         """
         print("\n🎯 Building Claim Severity Prediction Models...")
+
+        # Check if processed data exists
+        if self.df_processed is None or len(self.df_processed) == 0:
+            print("❌ No processed data available for modeling")
+            return {}
+
+        # Check if TotalClaims column exists
+        if 'TotalClaims' not in self.df_processed.columns:
+            print("❌ TotalClaims column not found in processed data")
+            return {}
 
         # Filter data to only include policies with claims
         df_claims = self.df_processed[self.df_processed['TotalClaims'] > 0].copy()
@@ -436,6 +595,34 @@ class InsurancePredictiveModeling:
 
         X = df_claims[feature_cols]
         y = df_claims[target_col]
+
+        # Apply robust NaN cleanup
+        X = self._robust_nan_cleanup(X, "claim severity features")
+
+        # Final verification that no NaN values remain
+        final_nan_count = X.isnull().sum().sum()
+        if final_nan_count > 0:
+            print(f"⚠️ Still found {final_nan_count} NaN values after cleanup. Applying aggressive cleanup...")
+            # Use sklearn's SimpleImputer as a fallback
+            from sklearn.impute import SimpleImputer
+
+            # Separate numerical and categorical columns
+            numerical_cols = X.select_dtypes(include=[np.number]).columns
+            categorical_cols = X.select_dtypes(include=['object', 'bool']).columns
+
+            # Impute numerical columns
+            if len(numerical_cols) > 0:
+                num_imputer = SimpleImputer(strategy='median')
+                X[numerical_cols] = num_imputer.fit_transform(X[numerical_cols])
+
+            # Impute categorical columns
+            if len(categorical_cols) > 0:
+                cat_imputer = SimpleImputer(strategy='most_frequent')
+                X[categorical_cols] = cat_imputer.fit_transform(X[categorical_cols])
+
+            # Final check
+            final_final_nan_count = X.isnull().sum().sum()
+            print(f"✅ Aggressive cleanup completed. Final NaN count: {final_final_nan_count}")
 
         # Train-test split
         X_train, X_test, y_train, y_test = train_test_split(
@@ -502,13 +689,56 @@ class InsurancePredictiveModeling:
         """
         print("\n🎯 Building Claim Probability Prediction Models...")
 
+        # Check if processed data exists and has required columns
+        if self.df_processed is None or len(self.df_processed) == 0:
+            print("❌ No processed data available for modeling")
+            return {}
+
         # Prepare features and target
         target_col = 'HasClaim'
         exclude_cols = ['PolicyID', 'TotalClaims', 'CalculatedPremiumPerTerm', 'TransactionMonth']
+
+        # Check if target column exists
+        if target_col not in self.df_processed.columns:
+            print(f"❌ Target column '{target_col}' not found in processed data")
+            return {}
+
         feature_cols = [col for col in self.df_processed.columns if col not in exclude_cols + [target_col]]
+
+        if len(feature_cols) == 0:
+            print("❌ No feature columns available for modeling")
+            return {}
 
         X = self.df_processed[feature_cols]
         y = self.df_processed[target_col]
+
+        # Apply robust NaN cleanup
+        X = self._robust_nan_cleanup(X, "claim probability features")
+
+        # Final verification that no NaN values remain
+        final_nan_count = X.isnull().sum().sum()
+        if final_nan_count > 0:
+            print(f"⚠️ Still found {final_nan_count} NaN values after cleanup. Applying aggressive cleanup...")
+            # Use sklearn's SimpleImputer as a fallback
+            from sklearn.impute import SimpleImputer
+
+            # Separate numerical and categorical columns
+            numerical_cols = X.select_dtypes(include=[np.number]).columns
+            categorical_cols = X.select_dtypes(include=['object', 'bool']).columns
+
+            # Impute numerical columns
+            if len(numerical_cols) > 0:
+                num_imputer = SimpleImputer(strategy='median')
+                X[numerical_cols] = num_imputer.fit_transform(X[numerical_cols])
+
+            # Impute categorical columns
+            if len(categorical_cols) > 0:
+                cat_imputer = SimpleImputer(strategy='most_frequent')
+                X[categorical_cols] = cat_imputer.fit_transform(X[categorical_cols])
+
+            # Final check
+            final_final_nan_count = X.isnull().sum().sum()
+            print(f"✅ Aggressive cleanup completed. Final NaN count: {final_final_nan_count}")
 
         print(f"📊 Training on {len(X)} policies")
         print(f"📈 Claim rate: {y.mean():.3f} ({y.sum()} claims out of {len(y)} policies)")
@@ -589,13 +819,56 @@ class InsurancePredictiveModeling:
         """
         print("\n🎯 Building Premium Optimization Models...")
 
+        # Check if processed data exists and has required columns
+        if self.df_processed is None or len(self.df_processed) == 0:
+            print("❌ No processed data available for modeling")
+            return {}
+
         # Prepare features and target
         target_col = 'CalculatedPremiumPerTerm'
         exclude_cols = ['PolicyID', 'TotalClaims', 'HasClaim', 'TransactionMonth']
+
+        # Check if target column exists
+        if target_col not in self.df_processed.columns:
+            print(f"❌ Target column '{target_col}' not found in processed data")
+            return {}
+
         feature_cols = [col for col in self.df_processed.columns if col not in exclude_cols + [target_col]]
+
+        if len(feature_cols) == 0:
+            print("❌ No feature columns available for modeling")
+            return {}
 
         X = self.df_processed[feature_cols]
         y = self.df_processed[target_col]
+
+        # Apply robust NaN cleanup
+        X = self._robust_nan_cleanup(X, "premium optimization features")
+
+        # Final verification that no NaN values remain
+        final_nan_count = X.isnull().sum().sum()
+        if final_nan_count > 0:
+            print(f"⚠️ Still found {final_nan_count} NaN values after cleanup. Applying aggressive cleanup...")
+            # Use sklearn's SimpleImputer as a fallback
+            from sklearn.impute import SimpleImputer
+
+            # Separate numerical and categorical columns
+            numerical_cols = X.select_dtypes(include=[np.number]).columns
+            categorical_cols = X.select_dtypes(include=['object', 'bool']).columns
+
+            # Impute numerical columns
+            if len(numerical_cols) > 0:
+                num_imputer = SimpleImputer(strategy='median')
+                X[numerical_cols] = num_imputer.fit_transform(X[numerical_cols])
+
+            # Impute categorical columns
+            if len(categorical_cols) > 0:
+                cat_imputer = SimpleImputer(strategy='most_frequent')
+                X[categorical_cols] = cat_imputer.fit_transform(X[categorical_cols])
+
+            # Final check
+            final_final_nan_count = X.isnull().sum().sum()
+            print(f"✅ Aggressive cleanup completed. Final NaN count: {final_final_nan_count}")
 
         print(f"📊 Training on {len(X)} policies")
 
